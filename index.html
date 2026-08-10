@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Gestão de Banca · Ao Vivo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --bg0:#041f1e; --bg1:#0a3835; --bg2:#062b29;
+  --glass:rgba(255,255,255,.07); --glass2:rgba(255,255,255,.045);
+  --stroke:rgba(159,245,228,.18); --stroke-soft:rgba(159,245,228,.10);
+  --ink:#eafffb; --ink-dim:#8fc9bf; --ink-faint:#5e968d;
+  --aqua:#3ee6c8; --aqua-soft:#9ff5e4;
+  --pos:#43e9a0; --neg:#ff6b7e; --warn:#ffd479;
+  --glow:0 0 24px rgba(62,230,200,.25);
+  --radius:18px;
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg0:#d8f3ee; --bg1:#eafaf7; --bg2:#c8ece5;
+    --glass:rgba(255,255,255,.55); --glass2:rgba(255,255,255,.35);
+    --stroke:rgba(9,90,78,.18); --stroke-soft:rgba(9,90,78,.10);
+    --ink:#06312b; --ink-dim:#2f6f64; --ink-faint:#5d948a;
+    --aqua:#0aa88d; --aqua-soft:#067a67;
+    --pos:#0d9d63; --neg:#d9294a; --warn:#a86e00;
+    --glow:0 0 24px rgba(10,168,141,.18);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:dark light}
+body{
+  font-family:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(62,230,200,.20), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, rgba(64,180,255,.10), transparent 55%),
+    radial-gradient(800px 700px at 50% 110%, rgba(62,230,200,.12), transparent 60%),
+    linear-gradient(160deg, var(--bg1), var(--bg0) 55%, var(--bg2));
+  background-attachment:fixed;
+  min-height:100vh;
+  padding:28px clamp(14px,3vw,40px) 60px;
+}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.card{
+  background:var(--glass);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  backdrop-filter:blur(18px) saturate(1.3);
+  -webkit-backdrop-filter:blur(18px) saturate(1.3);
+  box-shadow:0 10px 40px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.09);
+  padding:20px 22px;
+}
+.eyebrow{
+  font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-dim);
+}
+.money{font-variant-numeric:tabular-nums}
+.pos{color:var(--pos)} .neg{color:var(--neg)} .muted{color:var(--ink-faint)}
+
+.hero{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:18px;align-items:stretch}
+@media(max-width:900px){.hero{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.hero{grid-template-columns:1fr}}
+.hero .total{
+  display:flex;flex-direction:column;justify-content:center;gap:6px;
+  background:linear-gradient(135deg, rgba(62,230,200,.16), var(--glass) 60%);
+  position:relative;
+}
+.total-value{
+  font-size:clamp(2rem,4.5vw,3.1rem);font-weight:800;letter-spacing:-.02em;
+  color:var(--aqua);text-shadow:var(--glow);
+  font-variant-numeric:tabular-nums;
+}
+.live-pills{position:absolute;top:14px;right:14px;display:flex;gap:8px}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:4px 10px;border-radius:999px;border:1px solid var(--stroke);
+  background:var(--glass2);color:var(--ink-dim);
+}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--ink-faint)}
+.pill.ok .dot{background:var(--pos);box-shadow:0 0 8px var(--pos)}
+.pill.warn .dot{background:var(--warn)}
+.pill.err .dot{background:var(--neg)}
+.hero-field{display:flex;flex-direction:column;justify-content:center;gap:8px}
+.hero-field input{
+  background:var(--glass2);border:1px solid var(--stroke);border-radius:12px;
+  padding:10px 12px;font-size:1.1rem;font-weight:600;color:var(--ink);
+  font-variant-numeric:tabular-nums;width:100%;
+}
+input,select{font-family:inherit;outline:none}
+input:focus,select:focus,button:focus-visible{border-color:var(--aqua)!important;box-shadow:0 0 0 3px rgba(62,230,200,.22)}
+
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.section-head h2{font-size:1.02rem;font-weight:800;letter-spacing:.04em}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+th{
+  font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-dim);text-align:left;padding:6px 8px;border-bottom:1px solid var(--stroke);
+  white-space:nowrap;
+}
+td{padding:3px 4px;border-bottom:1px solid var(--stroke-soft);white-space:nowrap}
+td.idx{color:var(--ink-faint);font-size:.75rem;width:28px;text-align:right;padding-right:8px;font-variant-numeric:tabular-nums}
+td input, td select{
+  width:100%;min-width:78px;background:transparent;border:1px solid transparent;border-radius:8px;
+  padding:6px 8px;color:var(--ink);font-size:.86rem;font-variant-numeric:tabular-nums;
+  transition:background .15s,border-color .15s;
+}
+td input[type=date]{min-width:120px;color-scheme:inherit}
+td select{min-width:110px;appearance:none;cursor:pointer}
+td input:hover, td select:hover{background:var(--glass2)}
+td input:focus, td select:focus{background:var(--glass2);border-color:var(--aqua)}
+td.calc{font-weight:700;text-align:right;padding-right:10px;font-variant-numeric:tabular-nums;min-width:92px}
+tfoot td{border-top:1px solid var(--stroke);border-bottom:none;font-weight:800;padding:9px 8px;font-variant-numeric:tabular-nums}
+tfoot td:first-child{letter-spacing:.1em;font-size:.7rem;text-transform:uppercase;color:var(--ink-dim)}
+tbody tr:hover td{background:rgba(62,230,200,.04)}
+
+.ciclos-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media(max-width:1020px){.ciclos-grid{grid-template-columns:1fr}}
+.bottom-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:22px;align-items:start}
+@media(max-width:1020px){.bottom-grid{grid-template-columns:1fr}}
+
+.resumo-list{display:flex;flex-direction:column}
+.resumo-row{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:9px 4px;border-bottom:1px solid var(--stroke-soft);font-size:.9rem;
+}
+.resumo-row span:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+.resumo-row.big{
+  border:none;margin-top:10px;padding:14px;border-radius:14px;
+  background:linear-gradient(135deg, rgba(62,230,200,.18), rgba(62,230,200,.05));
+  border:1px solid var(--stroke);
+}
+.resumo-row.big span:last-child{font-size:1.25rem;font-weight:800;color:var(--aqua)}
+.resumo-row.telas span:last-child{color:var(--warn)}
+
+button{
+  font-family:inherit;cursor:pointer;border-radius:12px;border:1px solid var(--stroke);
+  background:var(--glass2);color:var(--ink);padding:8px 14px;font-size:.8rem;font-weight:700;
+  letter-spacing:.03em;transition:background .15s, box-shadow .15s;
+  backdrop-filter:blur(8px);
+}
+button:hover{background:rgba(62,230,200,.15);box-shadow:var(--glow)}
+button.primary{background:linear-gradient(135deg, rgba(62,230,200,.35), rgba(62,230,200,.15));border-color:var(--aqua)}
+button.danger:hover{background:rgba(255,107,126,.18);box-shadow:0 0 18px rgba(255,107,126,.25)}
+.btn-x{border:none;background:transparent;color:var(--ink-faint);padding:4px 8px;font-size:.8rem;border-radius:8px}
+.btn-x:hover{color:var(--neg);background:rgba(255,107,126,.12);box-shadow:none}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.footer-note{text-align:center;font-size:.72rem;color:var(--ink-faint);letter-spacing:.05em}
+@media (prefers-reduced-motion: no-preference){
+  .card{animation:rise .5s ease both}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="card total">
+      <div class="live-pills">
+        <span class="pill" id="onlinePill"><span class="dot"></span><span id="onlineTxt">—</span></span>
+        <span class="pill" id="syncPill"><span class="dot"></span><span id="syncTxt">Conectando…</span></span>
+      </div>
+      <span class="eyebrow">Total Banca</span>
+      <span class="total-value money" id="totalBanca">R$ 0,00</span>
+      <span class="muted" id="variacao" style="font-size:.8rem;font-variant-numeric:tabular-nums"></span>
+    </div>
+    <div class="card hero-field">
+      <span class="eyebrow">Banco Inicial</span>
+      <input id="bancoInicial" inputmode="decimal" placeholder="R$ 0,00" aria-label="Banco inicial">
+    </div>
+    <div class="card hero-field">
+      <span class="eyebrow">Data / Filtro</span>
+      <input id="dataFiltro" type="date" aria-label="Data de referência">
+    </div>
+  </div>
+
+  <div class="ciclos-grid">
+    <div class="card">
+      <div class="section-head"><h2>CICLOS 1</h2><span class="eyebrow">1 – 20</span></div>
+      <div class="tbl-scroll">
+        <table id="tblC1">
+          <thead><tr><th></th><th>Telas</th><th>Depósito</th><th>Saque</th><th>Baú</th><th style="text-align:right">Lucro</th></tr></thead>
+          <tbody></tbody>
+          <tfoot><tr><td>Total</td><td class="money" id="t1telas"></td><td class="money" id="t1dep"></td><td class="money" id="t1saq"></td><td class="money" id="t1bau"></td><td class="money" id="t1luc" style="text-align:right"></td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-head"><h2>CICLOS 2</h2><span class="eyebrow">21 – 40</span></div>
+      <div class="tbl-scroll">
+        <table id="tblC2">
+          <thead><tr><th></th><th>Data</th><th>Depósito</th><th>Saque</th><th>Baú</th><th style="text-align:right">Lucro</th></tr></thead>
+          <tbody></tbody>
+          <tfoot><tr><td>Total</td><td></td><td class="money" id="t2dep"></td><td class="money" id="t2saq"></td><td class="money" id="t2bau"></td><td class="money" id="t2luc" style="text-align:right"></td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-grid">
+    <div class="card">
+      <div class="section-head">
+        <h2>DESPESAS / APORTES</h2>
+        <button id="addDespesa">+ Linha</button>
+      </div>
+      <div class="tbl-scroll">
+        <table id="tblDesp">
+          <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Valor</th><th style="text-align:right">Impacto</th><th style="text-align:right">Saldo após</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-head"><h2>RESUMO</h2></div>
+      <div class="resumo-list">
+        <div class="resumo-row"><span>Total depósitos</span><span class="money" id="rDep"></span></div>
+        <div class="resumo-row"><span>Total saques</span><span class="money" id="rSaq"></span></div>
+        <div class="resumo-row"><span>Total baús</span><span class="money" id="rBau"></span></div>
+        <div class="resumo-row"><span>Lucro ciclos</span><span class="money" id="rLuc"></span></div>
+        <div class="resumo-row"><span>Aportes</span><span class="money" id="rApo"></span></div>
+        <div class="resumo-row"><span>Despesas (SMS + pagamentos)</span><span class="money" id="rDes"></span></div>
+        <div class="resumo-row telas"><span>Telas a pagar (QR code)</span><span class="money" id="rTelas"></span></div>
+        <div class="resumo-row big"><span>BANCA ESPERADA</span><span class="money" id="rBanca"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-head">
+      <h2>FECHAMENTO DIÁRIO</h2>
+      <div class="toolbar">
+        <button class="primary" id="snapDia">📸 Registrar dia atual</button>
+        <button class="danger" id="resetAll">Limpar tudo</button>
+      </div>
+    </div>
+    <div class="tbl-scroll">
+      <table id="tblDias">
+        <thead><tr><th>Dia</th><th style="text-align:right">Saques</th><th style="text-align:right">Depósitos</th><th style="text-align:right">Baús</th><th style="text-align:right">Lucro</th><th style="text-align:right">Saldo</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer-note">🟢 Edição compartilhada em tempo real — quem tiver o link vê e edita junto · Navegue com ↑ ↓ ← → e Enter · Lucro = Saque + Baú − Depósito · Aporte soma · SMS e Pagamento deduzem</div>
+</div>
+
+<script>
+"use strict";
+/* ---------- sync config ---------- */
+var SUPA_URL="https://tyexlrlndrgezalqdwmu.supabase.co";
+var SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5ZXhscmxuZHJnZXphbHFkd211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNzA2NTQsImV4cCI6MjA5NTY0NjY1NH0.dApkhQAe6keQxQ2zeXofDqWDoqxhlRIsUyuwAwZbJHE";
+var SHEET_ID="principal";
+var sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+var myId="u"+Math.random().toString(36).slice(2,10);
+var applying=false;
+
+const KEY="banca-verde-agua-live-v1";
+const N=20, ND=10;
+const fmt=v=>(v<0?"-R$ ":"R$ ")+Math.abs(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const parseBR=s=>{
+  if(!s)return 0;
+  s=String(s).replace(/[^\d,.-]/g,"");
+  if(s.includes(",")) s=s.replace(/\./g,"").replace(",",".");
+  const n=parseFloat(s); return isNaN(n)?0:n;
+};
+
+let S=load();
+function blank(){
+  return {
+    inicial:1500,
+    dataFiltro:"",
+    c1:Array.from({length:N},()=>({telas:0,dep:0,saq:0,bau:0})),
+    c2:Array.from({length:N},()=>({data:"",dep:0,saq:0,bau:0})),
+    desp:Array.from({length:ND},()=>({data:"",tipo:"",desc:"",valor:0})),
+    dias:[]
+  };
+}
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(KEY)); if(d&&d.c1)return d;}catch(e){}
+  return blank();
+}
+function serialize(){
+  return {
+    inicial:S.inicial, dataFiltro:S.dataFiltro,
+    c1:S.c1.map(r=>({telas:r.telas||0,dep:r.dep||0,saq:r.saq||0,bau:r.bau||0})),
+    c2:S.c2.map(r=>({data:r.data||"",dep:r.dep||0,saq:r.saq||0,bau:r.bau||0})),
+    desp:S.desp.map(r=>({data:r.data||"",tipo:r.tipo||"",desc:r.desc||"",valor:r.valor||0})),
+    dias:(S.dias||[]).slice(),
+    _client:myId
+  };
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(serialize()));}catch(e){}
+  if(!applying)queuePush();
+}
+
+/* ---------- sync status UI ---------- */
+function setPill(id,cls,txt){
+  const p=document.getElementById(id);
+  p.className="pill "+cls;
+  p.querySelector("span:last-child").textContent=txt;
+}
+let pushTimer=null, pushing=false, dirty=false;
+function queuePush(){
+  clearTimeout(pushTimer);
+  setPill("syncPill","warn","Salvando…");
+  pushTimer=setTimeout(push,450);
+}
+async function push(){
+  if(pushing){dirty=true;return;}
+  pushing=true;
+  try{
+    const {error}=await sb.from("banca_sheets").upsert({id:SHEET_ID,data:serialize(),updated_at:new Date().toISOString()});
+    if(error)throw error;
+    setPill("syncPill","ok","Sincronizado");
+  }catch(e){
+    setPill("syncPill","err","Offline — tente de novo");
+  }
+  pushing=false;
+  if(dirty){dirty=false;push();}
+}
+
+/* ---------- build rows ---------- */
+function moneyInput(val,oninput){
+  const i=document.createElement("input");
+  i.inputMode="decimal";
+  i.value=val?fmt(val):"";
+  i.placeholder="—";
+  i.addEventListener("input",()=>oninput(parseBR(i.value)));
+  i.addEventListener("blur",()=>{const v=parseBR(i.value); i.value=v?fmt(v):"";});
+  i.addEventListener("focus",()=>i.select());
+  return i;
+}
+function buildCiclos(tbl,rows,startIdx,withData){
+  const tb=tbl.querySelector("tbody"); tb.innerHTML="";
+  rows.forEach((r,idx)=>{
+    const tr=document.createElement("tr");
+    const tdIdx=document.createElement("td"); tdIdx.className="idx"; tdIdx.textContent=startIdx+idx; tr.appendChild(tdIdx);
+    r._in={};
+    const cols=withData?["data","dep","saq","bau"]:["telas","dep","saq","bau"];
+    cols.forEach(k=>{
+      const td=document.createElement("td");
+      if(k==="data"){
+        const i=document.createElement("input"); i.type="date"; i.value=r.data||"";
+        i.addEventListener("input",()=>{r.data=i.value;save();});
+        r._in.data=i;
+        td.appendChild(i);
+      }else{
+        const inp=moneyInput(r[k],v=>{r[k]=v;recalc();});
+        r._in[k]=inp;
+        td.appendChild(inp);
+      }
+      tr.appendChild(td);
+    });
+    const tdL=document.createElement("td"); tdL.className="calc money"; tr.appendChild(tdL);
+    r._lucroCell=tdL;
+    tb.appendChild(tr);
+  });
+}
+function buildDespesas(){
+  const tb=document.querySelector("#tblDesp tbody"); tb.innerHTML="";
+  S.desp.forEach((r,idx)=>{
+    const tr=document.createElement("tr");
+    r._in={};
+    let td=document.createElement("td");
+    const di=document.createElement("input"); di.type="date"; di.value=r.data||"";
+    di.addEventListener("input",()=>{r.data=di.value;save();});
+    r._in.data=di;
+    td.appendChild(di); tr.appendChild(td);
+
+    td=document.createElement("td");
+    const sel=document.createElement("select");
+    ["","SMS","Pagamento","Aporte"].forEach(o=>{
+      const op=document.createElement("option"); op.value=o; op.textContent=o||"—"; sel.appendChild(op);
+    });
+    sel.value=r.tipo||"";
+    sel.addEventListener("change",()=>{r.tipo=sel.value;recalc();});
+    r._in.tipo=sel;
+    td.appendChild(sel); tr.appendChild(td);
+
+    td=document.createElement("td");
+    const de=document.createElement("input"); de.value=r.desc||""; de.placeholder="—"; de.style.minWidth="120px";
+    de.addEventListener("input",()=>{r.desc=de.value;save();});
+    de.addEventListener("focus",()=>de.select());
+    r._in.desc=de;
+    td.appendChild(de); tr.appendChild(td);
+
+    td=document.createElement("td");
+    const vi=moneyInput(r.valor,v=>{r.valor=v;recalc();});
+    r._in.valor=vi;
+    td.appendChild(vi);
+    tr.appendChild(td);
+
+    const tdI=document.createElement("td"); tdI.className="calc money"; tr.appendChild(tdI);
+    const tdS=document.createElement("td"); tdS.className="calc money"; tr.appendChild(tdS);
+    r._imp=tdI; r._saldo=tdS;
+
+    td=document.createElement("td");
+    const bx=document.createElement("button"); bx.className="btn-x"; bx.textContent="✕"; bx.title="Remover linha";
+    bx.addEventListener("click",()=>{S.desp.splice(idx,1); if(!S.desp.length)S.desp.push({data:"",tipo:"",desc:"",valor:0}); buildDespesas(); recalc();});
+    td.appendChild(bx); tr.appendChild(td);
+    tb.appendChild(tr);
+  });
+  refreshNav();
+}
+function buildDias(){
+  const tb=document.querySelector("#tblDias tbody"); tb.innerHTML="";
+  if(!S.dias||!S.dias.length){
+    const tr=document.createElement("tr");
+    const td=document.createElement("td"); td.colSpan=7; td.className="muted"; td.style.padding="14px 8px";
+    td.textContent="Nenhum dia registrado ainda — use “Registrar dia atual” para tirar um snapshot dos totais.";
+    tr.appendChild(td); tb.appendChild(tr); return;
+  }
+  S.dias.forEach((d,idx)=>{
+    const tr=document.createElement("tr");
+    const c=(txt,right,cls)=>{const td=document.createElement("td"); td.textContent=txt; if(right){td.style.textAlign="right";td.classList.add("money");} if(cls)td.classList.add(cls); return td;};
+    tr.appendChild(c(d.dia));
+    tr.appendChild(c(fmt(d.saq),1));
+    tr.appendChild(c(fmt(d.dep),1));
+    tr.appendChild(c(fmt(d.bau),1));
+    tr.appendChild(c(fmt(d.luc),1,d.luc<0?"neg":"pos"));
+    tr.appendChild(c(fmt(d.saldo),1));
+    const td=document.createElement("td");
+    const bx=document.createElement("button"); bx.className="btn-x"; bx.textContent="✕";
+    bx.addEventListener("click",()=>{S.dias.splice(idx,1);buildDias();recalc();});
+    td.appendChild(bx); tr.appendChild(td);
+    tb.appendChild(tr);
+  });
+}
+
+/* ---------- navegação estilo planilha ---------- */
+let navRows=[];
+function refreshNav(){
+  navRows=[];
+  const bi=document.getElementById("bancoInicial"), df=document.getElementById("dataFiltro");
+  navRows.push([bi,df]);
+  const c1=[...document.querySelectorAll("#tblC1 tbody tr")];
+  const c2=[...document.querySelectorAll("#tblC2 tbody tr")];
+  for(let i=0;i<c1.length;i++){
+    navRows.push([
+      ...c1[i].querySelectorAll("input,select"),
+      ...(c2[i]?c2[i].querySelectorAll("input,select"):[])
+    ]);
+  }
+  document.querySelectorAll("#tblDesp tbody tr").forEach(tr=>{
+    const cells=[...tr.querySelectorAll("input,select")];
+    if(cells.length)navRows.push(cells);
+  });
+  navRows.forEach((row,r)=>row.forEach((el,c)=>{el.dataset.r=r;el.dataset.c=c;}));
+}
+function navFocus(r,c){
+  r=Math.max(0,Math.min(navRows.length-1,r));
+  const row=navRows[r]; if(!row||!row.length)return;
+  c=Math.max(0,Math.min(row.length-1,c));
+  const el=row[c];
+  el.focus();
+  if(el.tagName==="INPUT"&&(el.type==="text"||el.type==="")){try{el.select();}catch(e){}}
+}
+function caretAtStart(el){
+  try{return el.selectionStart===0&&(el.selectionEnd===0||el.selectionEnd===el.value.length);}catch(e){return true;}
+}
+function caretAtEnd(el){
+  try{const len=el.value.length;return el.selectionEnd===len&&(el.selectionStart===len||el.selectionStart===0);}catch(e){return true;}
+}
+document.addEventListener("keydown",e=>{
+  const el=e.target;
+  if(!el.dataset||el.dataset.r===undefined)return;
+  const r=+el.dataset.r, c=+el.dataset.c;
+  const isText=el.tagName==="INPUT"&&(el.type==="text"||el.type==="");
+  let dr=0, dc=0;
+  if(e.key==="ArrowDown"||(e.key==="Enter"&&!e.shiftKey)) dr=1;
+  else if(e.key==="ArrowUp"||(e.key==="Enter"&&e.shiftKey)) dr=-1;
+  else if(e.key==="ArrowRight"){ if(isText&&!caretAtEnd(el))return; dc=1; }
+  else if(e.key==="ArrowLeft"){ if(isText&&!caretAtStart(el))return; dc=-1; }
+  else return;
+  e.preventDefault();
+  navFocus(r+dr,c+dc);
+});
+
+/* ---------- recalc ---------- */
+function totals(){
+  const lucro=r=>r.saq+r.bau-r.dep;
+  const sum=(arr,f)=>arr.reduce((a,r)=>a+f(r),0);
+  const t={
+    telas:sum(S.c1,r=>r.telas),
+    dep:sum(S.c1,r=>r.dep)+sum(S.c2,r=>r.dep),
+    saq:sum(S.c1,r=>r.saq)+sum(S.c2,r=>r.saq),
+    bau:sum(S.c1,r=>r.bau)+sum(S.c2,r=>r.bau),
+    luc:sum(S.c1,lucro)+sum(S.c2,lucro),
+    apo:0, des:0
+  };
+  S.desp.forEach(r=>{
+    if(r.tipo==="Aporte")t.apo+=r.valor;
+    else if(r.tipo==="SMS"||r.tipo==="Pagamento")t.des+=r.valor;
+  });
+  t.banca=S.inicial+t.luc+t.apo-t.des;
+  return t;
+}
+function setLucroCell(td,v){
+  td.textContent=v? fmt(v):"";
+  td.classList.toggle("pos",v>0); td.classList.toggle("neg",v<0);
+}
+function recalc(){
+  const lucro=r=>r.saq+r.bau-r.dep;
+  S.c1.forEach(r=>setLucroCell(r._lucroCell,lucro(r)));
+  S.c2.forEach(r=>setLucroCell(r._lucroCell,lucro(r)));
+  const sum=(a,f)=>a.reduce((x,r)=>x+f(r),0);
+  document.getElementById("t1telas").textContent=fmt(sum(S.c1,r=>r.telas));
+  document.getElementById("t1dep").textContent=fmt(sum(S.c1,r=>r.dep));
+  document.getElementById("t1saq").textContent=fmt(sum(S.c1,r=>r.saq));
+  document.getElementById("t1bau").textContent=fmt(sum(S.c1,r=>r.bau));
+  const l1=sum(S.c1,lucro); const e1=document.getElementById("t1luc");
+  e1.textContent=fmt(l1); e1.className="money "+(l1<0?"neg":l1>0?"pos":"");
+  document.getElementById("t2dep").textContent=fmt(sum(S.c2,r=>r.dep));
+  document.getElementById("t2saq").textContent=fmt(sum(S.c2,r=>r.saq));
+  document.getElementById("t2bau").textContent=fmt(sum(S.c2,r=>r.bau));
+  const l2=sum(S.c2,lucro); const e2=document.getElementById("t2luc");
+  e2.textContent=fmt(l2); e2.className="money "+(l2<0?"neg":l2>0?"pos":"");
+
+  const preDesp=S.inicial+l1+l2;
+  let running=preDesp;
+  S.desp.forEach(r=>{
+    let imp=0;
+    if(r.tipo==="Aporte")imp=r.valor;
+    else if(r.tipo==="SMS"||r.tipo==="Pagamento")imp=-r.valor;
+    running+=imp;
+    if(r._imp){ r._imp.textContent=imp?fmt(imp):""; r._imp.classList.toggle("pos",imp>0); r._imp.classList.toggle("neg",imp<0); }
+    if(r._saldo) r._saldo.textContent=(r.tipo&&r.valor)?fmt(running):"";
+  });
+
+  const t=totals();
+  document.getElementById("rDep").textContent=fmt(t.dep);
+  document.getElementById("rSaq").textContent=fmt(t.saq);
+  document.getElementById("rBau").textContent=fmt(t.bau);
+  const rL=document.getElementById("rLuc");
+  rL.textContent=fmt(t.luc); rL.className="money "+(t.luc<0?"neg":t.luc>0?"pos":"");
+  document.getElementById("rApo").textContent=fmt(t.apo);
+  document.getElementById("rDes").textContent=fmt(t.des);
+  document.getElementById("rTelas").textContent=fmt(t.telas);
+  document.getElementById("rBanca").textContent=fmt(t.banca);
+  document.getElementById("totalBanca").textContent=fmt(t.banca);
+  const dv=t.banca-S.inicial; const varEl=document.getElementById("variacao");
+  varEl.textContent=(dv>=0?"▲ +":"▼ ")+fmt(dv)+" desde o banco inicial";
+  varEl.className="money "+(dv<0?"neg":dv>0?"pos":"muted");
+  save();
+}
+
+/* ---------- aplicar estado remoto ---------- */
+function setVal(el,v,money){
+  if(!el||el===document.activeElement)return;
+  el.value=money?(v?fmt(v):""):(v||"");
+}
+function applyRemote(d){
+  if(!d||!d.c1)return;
+  applying=true;
+  try{
+    S.inicial=d.inicial||0;
+    S.dataFiltro=d.dataFiltro||"";
+    const bi=document.getElementById("bancoInicial"), df=document.getElementById("dataFiltro");
+    setVal(bi,S.inicial,true);
+    setVal(df,S.dataFiltro,false);
+
+    for(let i=0;i<N;i++){
+      const src=d.c1[i]||{}, r=S.c1[i];
+      r.telas=src.telas||0; r.dep=src.dep||0; r.saq=src.saq||0; r.bau=src.bau||0;
+      setVal(r._in.telas,r.telas,true); setVal(r._in.dep,r.dep,true);
+      setVal(r._in.saq,r.saq,true); setVal(r._in.bau,r.bau,true);
+    }
+    for(let i=0;i<N;i++){
+      const src=(d.c2&&d.c2[i])||{}, r=S.c2[i];
+      r.data=src.data||""; r.dep=src.dep||0; r.saq=src.saq||0; r.bau=src.bau||0;
+      setVal(r._in.data,r.data,false); setVal(r._in.dep,r.dep,true);
+      setVal(r._in.saq,r.saq,true); setVal(r._in.bau,r.bau,true);
+    }
+    const desp=d.desp||[];
+    if(desp.length!==S.desp.length){
+      S.desp=desp.map(r=>({data:r.data||"",tipo:r.tipo||"",desc:r.desc||"",valor:r.valor||0}));
+      if(!S.desp.length)S.desp.push({data:"",tipo:"",desc:"",valor:0});
+      buildDespesas();
+    }else{
+      S.desp.forEach((r,i)=>{
+        const src=desp[i]||{};
+        r.data=src.data||""; r.tipo=src.tipo||""; r.desc=src.desc||""; r.valor=src.valor||0;
+        setVal(r._in.data,r.data,false); setVal(r._in.desc,r.desc,false); setVal(r._in.valor,r.valor,true);
+        if(r._in.tipo&&r._in.tipo!==document.activeElement)r._in.tipo.value=r.tipo;
+      });
+    }
+    S.dias=(d.dias||[]).slice();
+    buildDias();
+    recalc();
+  }finally{
+    applying=false;
+  }
+}
+
+/* ---------- init ---------- */
+buildCiclos(document.getElementById("tblC1"),S.c1,1,false);
+buildCiclos(document.getElementById("tblC2"),S.c2,21,true);
+buildDespesas();
+buildDias();
+
+const bi=document.getElementById("bancoInicial");
+bi.value=fmt(S.inicial);
+bi.addEventListener("input",()=>{S.inicial=parseBR(bi.value);recalc();});
+bi.addEventListener("blur",()=>bi.value=fmt(S.inicial));
+bi.addEventListener("focus",()=>bi.select());
+
+const df=document.getElementById("dataFiltro");
+df.value=S.dataFiltro||"";
+df.addEventListener("input",()=>{S.dataFiltro=df.value;save();});
+
+document.getElementById("addDespesa").addEventListener("click",()=>{
+  S.desp.push({data:"",tipo:"",desc:"",valor:0}); buildDespesas(); recalc();
+});
+document.getElementById("snapDia").addEventListener("click",()=>{
+  const t=totals();
+  const hoje=S.dataFiltro||new Date().toISOString().slice(0,10);
+  const parts=hoje.split("-");
+  S.dias=S.dias||[];
+  S.dias.push({dia:parts[2]+"/"+parts[1]+"/"+parts[0],saq:t.saq,dep:t.dep,bau:t.bau,luc:t.luc,saldo:t.banca});
+  buildDias(); recalc();
+});
+document.getElementById("resetAll").addEventListener("click",()=>{
+  if(!confirm("Apagar TODOS os dados da planilha? Isso apaga para todo mundo que usa o link e não pode ser desfeito."))return;
+  S=blank();
+  buildCiclos(document.getElementById("tblC1"),S.c1,1,false);
+  buildCiclos(document.getElementById("tblC2"),S.c2,21,true);
+  buildDespesas(); buildDias();
+  bi.value=fmt(S.inicial); df.value="";
+  recalc();
+});
+recalc();
+
+/* ---------- conexão realtime ---------- */
+(async function(){
+  try{
+    const res=await sb.from("banca_sheets").select("data").eq("id",SHEET_ID).maybeSingle();
+    if(res.error)throw res.error;
+    if(res.data&&res.data.data&&res.data.data.c1){
+      applyRemote(res.data.data);
+      setPill("syncPill","ok","Sincronizado");
+    }else{
+      queuePush();
+    }
+  }catch(e){
+    setPill("syncPill","err","Sem conexão");
+  }
+
+  sb.channel("banca-sync")
+    .on("postgres_changes",{event:"*",schema:"public",table:"banca_sheets",filter:"id=eq."+SHEET_ID},payload=>{
+      const d=payload.new&&payload.new.data;
+      if(d&&d._client!==myId)applyRemote(d);
+    })
+    .subscribe(status=>{
+      if(status==="SUBSCRIBED")setPill("syncPill","ok","Sincronizado");
+      else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")setPill("syncPill","err","Reconectando…");
+    });
+
+  const pres=sb.channel("banca-presence",{config:{presence:{key:myId}}});
+  pres.on("presence",{event:"sync"},()=>{
+    const n=Object.keys(pres.presenceState()).length;
+    setPill("onlinePill",n>1?"ok":"","👤 "+n+" online");
+  });
+  pres.subscribe(async status=>{
+    if(status==="SUBSCRIBED")await pres.track({at:Date.now()});
+  });
+})();
+</script>
+</body>
+</html>
