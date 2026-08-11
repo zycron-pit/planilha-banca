@@ -107,10 +107,12 @@ body{
 .tile.t-dead .num{color:#ffa3b2}.tile.t-dead .halo{background:rgba(255,107,129,.4)}
 
 /* Composer */
-.composer{display:flex;gap:10px;padding:12px;border-radius:var(--r-lg);margin-bottom:14px;
+.composer{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:var(--r-lg);margin-bottom:14px;
   background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.04));
   border:1px solid var(--line);box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.06);
   animation:rise .7s .34s cubic-bezier(.22,1,.36,1) both}
+.crow{display:flex;gap:10px}
+.f-plat,.f-grp{flex:1}
 .field{display:flex;align-items:center;gap:9px;background:rgba(0,0,0,.25);border:1px solid var(--line);
   border-radius:var(--r-md);padding:0 14px;transition:.2s;height:46px}
 .field:focus-within{border-color:rgba(67,224,200,.5);box-shadow:0 0 0 3px rgba(67,224,200,.12)}
@@ -142,6 +144,16 @@ body{
   box-shadow:0 6px 18px -6px rgba(67,224,200,.5)}
 .chip b{font-family:var(--mono);font-weight:600;margin-left:4px;opacity:.75}
 
+/* Seções por plataforma */
+.plathead{display:flex;align-items:center;gap:9px;padding:15px 20px 11px;border-bottom:1px solid rgba(255,255,255,.055);
+  background:rgba(255,255,255,.02);border-top:1px solid var(--line)}
+#rows > .plathead:first-child{border-top:none}
+.platdot{width:8px;height:8px;border-radius:50%;flex:none}
+.platname{font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.platmeta{margin-left:auto;font-size:11px;color:var(--ink-3);font-family:var(--mono)}
+.grouptag{flex:none;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--ink-2);
+  padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04)}
+
 /* Board */
 .board{border-radius:var(--r-lg);overflow:hidden;
   background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.04));
@@ -165,7 +177,8 @@ body{
 .fav img{width:20px;height:20px;border-radius:4px}
 .fav svg{opacity:.5}
 .linkmeta{min-width:0}
-.linkmeta .lab{font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.linkmeta .lab{display:flex;align-items:center;gap:7px;min-width:0;font-size:14px;font-weight:600;letter-spacing:-.01em}
+.linkmeta .lab .labtxt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .linkmeta .lab .untitled{color:var(--ink-3);font-weight:500}
 .linkmeta .url{display:flex;align-items:center;gap:6px;margin-top:2px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);min-width:0}
 .linkmeta .url span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -272,8 +285,8 @@ textarea.bulk:focus{border-color:rgba(67,224,200,.5);box-shadow:0 0 0 3px rgba(6
 @media (max-width:940px){
   .wrap{padding:14px 14px 70px}
   .stats{grid-template-columns:repeat(2,1fr)}
-  .composer{flex-direction:column}
-  .f-url,.f-label{flex:none}
+  .crow{flex-direction:column}
+  .f-url,.f-label,.f-plat,.f-grp{flex:none}
   .thead{display:none}
   .row{grid-template-columns:1fr;gap:12px;padding:16px}
   .actions{justify-content:flex-start}
@@ -310,22 +323,34 @@ textarea.bulk:focus{border-color:rgba(67,224,200,.5);box-shadow:0 0 0 3px rgba(6
   <section class="stats" id="stats"></section>
 
   <section class="composer owner-only">
-    <label class="field f-url">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      <input id="inUrl" type="text" placeholder="https://cole-o-link-aqui.com/?id=..." autocomplete="off" spellcheck="false">
-    </label>
-    <label class="field f-label">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-      <input id="inLabel" type="text" placeholder="Apelido (opcional)" autocomplete="off" maxlength="40">
-    </label>
-    <button class="btn btn-primary" id="btnAdd">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      Adicionar link
-    </button>
-    <button class="btn btn-ghost" id="btnImportOpen" title="Colar vários links de uma vez (um por linha)">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
-      Importar lista
-    </button>
+    <div class="crow">
+      <label class="field f-url">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <input id="inUrl" type="text" placeholder="https://cole-o-link-aqui.com/?id=..." autocomplete="off" spellcheck="false">
+      </label>
+      <label class="field f-label">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        <input id="inLabel" type="text" placeholder="Apelido (opcional)" autocomplete="off" maxlength="40">
+      </label>
+    </div>
+    <div class="crow">
+      <label class="field f-plat">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 9h20"/></svg>
+        <input id="inPlat" type="text" placeholder="Plataforma (ex.: VibrantPG)" autocomplete="off" maxlength="30">
+      </label>
+      <label class="field f-grp">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <input id="inGrupo" type="text" placeholder="Grupo (opcional)" autocomplete="off" maxlength="30">
+      </label>
+      <button class="btn btn-primary" id="btnAdd">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Adicionar link
+      </button>
+      <button class="btn btn-ghost" id="btnImportOpen" title="Colar vários links de uma vez (um por linha)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        Importar lista
+      </button>
+    </div>
   </section>
 
   <section class="toolbar">
@@ -362,7 +387,11 @@ textarea.bulk:focus{border-color:rgba(67,224,200,.5);box-shadow:0 0 0 3px rgba(6
 <div class="veil" id="mImport">
   <div class="sheet wide">
     <h2>Importar links em massa 📥</h2>
-    <p class="sub">Cole um link por linha. O que vier depois do link na mesma linha vira o apelido. Repetidos e inválidos são ignorados.</p>
+    <p class="sub">Cole um link por linha. O que vier depois do link na mesma linha vira o apelido. Plataforma e grupo valem para o lote inteiro. Repetidos e inválidos são ignorados.</p>
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <div style="flex:1"><p class="flabel">Plataforma</p><label class="field"><input id="imPlat" type="text" maxlength="30" autocomplete="off" placeholder="ex.: VibrantPG"></label></div>
+      <div style="flex:1"><p class="flabel">Grupo</p><label class="field"><input id="imGrupo" type="text" maxlength="30" autocomplete="off" placeholder="ex.: Grupo 7"></label></div>
+    </div>
     <textarea id="bulkTxt" class="bulk" spellcheck="false" placeholder="https://we-vibrantpg.com/?id=111111111
 https://we-vibrantpg.com/?id=222222222
 https://vibrantpg.com/?id=333333333 link do turno da noite"></textarea>
@@ -383,6 +412,10 @@ https://vibrantpg.com/?id=333333333 link do turno da noite"></textarea>
     <label class="field"><input id="edUrl" type="text" autocomplete="off" spellcheck="false" style="font-family:var(--mono);font-size:13px"></label>
     <p class="flabel">Apelido</p>
     <label class="field"><input id="edLabel" type="text" maxlength="40" autocomplete="off" placeholder="Opcional"></label>
+    <div style="display:flex;gap:10px">
+      <div style="flex:1"><p class="flabel">Plataforma</p><label class="field"><input id="edPlat" type="text" maxlength="30" autocomplete="off" placeholder="Opcional"></label></div>
+      <div style="flex:1"><p class="flabel">Grupo</p><label class="field"><input id="edGrupo" type="text" maxlength="30" autocomplete="off" placeholder="Opcional"></label></div>
+    </div>
     <div class="btnrow">
       <button class="btn btn-ghost" data-close>Cancelar</button>
       <button class="btn btn-primary" id="btnEditSave">Salvar</button>
@@ -484,10 +517,10 @@ async function addLink(){
   const url = withProto(raw);
   if (!validUrl(url)) return toast("Esse link não parece válido", "e");
   $("#btnAdd").disabled = true;
-  const { error } = await sb.from("proxy_links").insert({ url, label });
+  const { error } = await sb.from("proxy_links").insert({ url, label, plataforma: $("#inPlat").value.trim(), grupo: $("#inGrupo").value.trim() });
   $("#btnAdd").disabled = false;
   if (error) return toast(permErr(error) ? "🔒 Só o dono adiciona links" : "Erro ao adicionar: " + error.message, "e");
-  $("#inUrl").value = ""; $("#inLabel").value = "";
+  $("#inUrl").value = ""; $("#inLabel").value = ""; // plataforma/grupo ficam para o próximo
   toast("Link adicionado ✨");
   scheduleRefetch();
 }
@@ -539,7 +572,7 @@ async function saveEdit(){
   const url = withProto($("#edUrl").value.trim());
   const label = $("#edLabel").value.trim();
   if (!validUrl(url)) return toast("URL inválida", "e");
-  const { error } = await sb.from("proxy_links").update({ url, label }).eq("id", editingId);
+  const { error } = await sb.from("proxy_links").update({ url, label, plataforma: $("#edPlat").value.trim(), grupo: $("#edGrupo").value.trim() }).eq("id", editingId);
   closeModals();
   if (error) return toast(permErr(error) ? "🔒 Só o dono edita links" : "Erro: " + error.message, "e");
   toast("Link atualizado");
@@ -615,7 +648,8 @@ async function doImport(){
   $("#btnImportYes").disabled = true;
   // created_at decrescente por linha → a primeira linha do txt fica no topo da lista
   const base = Date.now();
-  const rows = out.map((r, i) => ({ ...r, created_at: new Date(base - i).toISOString() }));
+  const plataforma = $("#imPlat").value.trim(), grupo = $("#imGrupo").value.trim();
+  const rows = out.map((r, i) => ({ ...r, plataforma, grupo, created_at: new Date(base - i).toISOString() }));
   let okCount = 0, err = null;
   for (let i = 0; i < rows.length; i += 200){
     const chunk = rows.slice(i, i + 200);
@@ -702,6 +736,7 @@ function visibleLinks(){
     const q = norm(search);
     list = list.filter(l =>
       norm(l.url).includes(q) || norm(l.label).includes(q) ||
+      norm(l.plataforma).includes(q) || norm(l.grupo).includes(q) ||
       opsOf(l.id).some(o => norm(o.operator_name).includes(q)));
   }
   const rank = l => {
@@ -746,7 +781,7 @@ function rowHtml(l, idx){
     <div class="linkcell">
       <div class="fav">${fav}</div>
       <div class="linkmeta">
-        <div class="lab">${l.label ? esc(l.label) : `<span class="untitled">${esc(host || "link")}</span>`}</div>
+        <div class="lab"><span class="labtxt">${l.label ? esc(l.label) : `<span class="untitled">${esc(host || "link")}</span>`}</span>${l.grupo ? `<span class="grouptag">${esc(l.grupo)}</span>` : ""}</div>
         <div class="url"><span title="${esc(l.url)}">${esc(shortUrl(l.url))}</span>
           <button class="copybtn" data-copy="${esc(l.url)}" title="Copiar link">${COPY_SVG}</button>
         </div>
@@ -760,6 +795,36 @@ function rowHtml(l, idx){
       <button class="iconbtn del owner-only" data-del="${l.id}" title="Excluir (dono)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
     </div>
   </div>`;
+}
+
+const SEM_PLAT = " sem";
+function sectionsHtml(list){
+  // agrupa por plataforma preservando a ordem de ranking dentro de cada seção
+  const secs = new Map();
+  for (const l of list){
+    const k = norm(l.plataforma) || SEM_PLAT;
+    if (!secs.has(k)) secs.set(k, []);
+    secs.get(k).push(l);
+  }
+  // só existe "sem plataforma" → lista corrida, sem cabeçalhos
+  if (secs.size === 1 && secs.has(SEM_PLAT)) return list.map((l, i) => rowHtml(l, i)).join("");
+  const keys = [...secs.keys()].sort((a, b) => {
+    if (a === SEM_PLAT) return 1;
+    if (b === SEM_PLAT) return -1;
+    return a.localeCompare(b, "pt-BR");
+  });
+  let idx = 0, html = "";
+  for (const k of keys){
+    const items = secs.get(k);
+    const name = k === SEM_PLAT ? "Sem plataforma" : items[0].plataforma.trim();
+    const vagas = items.reduce((s, l) => s + (l.status === "funcionando" ? Math.max(0, CAP - opsOf(l.id).length) : 0), 0);
+    const dot = k === SEM_PLAT
+      ? "background:rgba(255,255,255,.25)"
+      : `background:hsl(${hue(name)},70%,55%);box-shadow:0 0 10px hsl(${hue(name)} 70% 55% / .55)`;
+    html += `<div class="plathead"><span class="platdot" style="${dot}"></span><span class="platname">${esc(name)}</span><span class="platmeta">${items.length} link${items.length > 1 ? "s" : ""} · ${vagas} vaga${vagas === 1 ? "" : "s"}</span></div>`;
+    html += items.map(l => rowHtml(l, idx++)).join("");
+  }
+  return html;
 }
 
 const seenLinks = new Set(), seenOps = new Set();
@@ -778,7 +843,7 @@ function render(){
       ? `<div class="empty"><div class="big">🔍</div><h3>Nada por aqui</h3><p>Nenhum link bate com esse filtro ou busca.</p></div>`
       : `<div class="empty"><div class="big">💠</div><h3>Nenhum link ainda</h3><p>${isOwner ? "Cole o primeiro link lá em cima, ou use “Importar lista” para colar vários de uma vez." : "O dono ainda não adicionou links por aqui."}</p></div>`;
   } else {
-    rows.innerHTML = list.map((l, i) => rowHtml(l, i)).join("");
+    rows.innerHTML = sectionsHtml(list);
   }
   links.forEach(l => seenLinks.add(l.id));
   ops.forEach(o => seenOps.add(o.link_id + "|" + norm(o.operator_name)));
@@ -833,6 +898,7 @@ document.addEventListener("click", e => {
     editingId = t.dataset.edit;
     const l = links.find(x => x.id === editingId);
     $("#edUrl").value = l.url; $("#edLabel").value = l.label || "";
+    $("#edPlat").value = l.plataforma || ""; $("#edGrupo").value = l.grupo || "";
     $("#mEdit").classList.add("open");
   }
   if (t.dataset.del) {
