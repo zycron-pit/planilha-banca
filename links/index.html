@@ -8,7 +8,10 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💠</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://tyexlrlndrgezalqdwmu.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://www.google.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#05070c;
@@ -23,7 +26,7 @@
   --glass-2:rgba(255,255,255,.09);
   --line:rgba(255,255,255,.09);
   --line-2:rgba(255,255,255,.17);
-  --blur:blur(22px) saturate(1.65);
+  --blur:blur(14px) saturate(1.4);
   --r-lg:22px; --r-md:15px; --r-sm:11px;
   --shadow:0 18px 50px -12px rgba(2,6,18,.65);
   --font:"Geist",-apple-system,"SF Pro Display",system-ui,sans-serif;
@@ -41,19 +44,13 @@ body{
 }
 ::selection{background:rgba(67,224,200,.28)}
 
-/* ── Atmosfera: aurora + grão ─────────────────────────── */
-.sky{position:fixed;inset:0;z-index:-2;overflow:hidden;background:
-  radial-gradient(1200px 800px at 85% -10%, rgba(43,110,232,.16), transparent 60%),
-  radial-gradient(900px 700px at -10% 20%, rgba(67,224,200,.14), transparent 55%),
-  radial-gradient(1000px 900px at 60% 120%, rgba(148,72,255,.10), transparent 60%),
+/* ── Atmosfera: aurora estática (composta uma vez, custo zero por frame) ── */
+.sky{position:fixed;inset:0;z-index:-2;background:
+  radial-gradient(1100px 780px at 84% -12%, rgba(43,110,232,.20), transparent 62%),
+  radial-gradient(880px 660px at -8% 12%, rgba(67,224,200,.18), transparent 58%),
+  radial-gradient(820px 720px at 55% 118%, rgba(148,72,255,.13), transparent 62%),
+  radial-gradient(520px 430px at 32% 44%, rgba(67,224,200,.05), transparent 65%),
   var(--bg);}
-.orb{position:absolute;border-radius:50%;filter:blur(95px);opacity:.5;will-change:transform}
-.orb.a{width:520px;height:520px;left:-140px;top:-120px;background:radial-gradient(circle,rgba(67,224,200,.55),transparent 70%);animation:drift1 34s ease-in-out infinite alternate}
-.orb.b{width:640px;height:640px;right:-180px;top:-60px;background:radial-gradient(circle,rgba(43,110,232,.45),transparent 70%);animation:drift2 44s ease-in-out infinite alternate}
-.orb.c{width:460px;height:460px;left:38%;bottom:-220px;background:radial-gradient(circle,rgba(148,72,255,.35),transparent 70%);animation:drift3 39s ease-in-out infinite alternate}
-@keyframes drift1{to{transform:translate(90px,60px) scale(1.12)}}
-@keyframes drift2{to{transform:translate(-70px,90px) scale(.92)}}
-@keyframes drift3{to{transform:translate(60px,-70px) scale(1.08)}}
 .grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.028;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");}
 
@@ -64,7 +61,7 @@ body{
 .topbar{
   display:flex;align-items:center;gap:14px;
   padding:12px 18px;margin-bottom:34px;
-  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.04));
   border:1px solid var(--line);border-radius:999px;box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.07);
   animation:dropIn .6s cubic-bezier(.22,1,.36,1) both;
 }
@@ -95,7 +92,7 @@ body{
 
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
 .tile{position:relative;overflow:hidden;padding:16px 18px;border-radius:var(--r-lg);
-  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.04));
   border:1px solid var(--line);box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.06);
   animation:rise .7s cubic-bezier(.22,1,.36,1) both;transition:border-color .25s, transform .25s}
 .tile:hover{border-color:var(--line-2);transform:translateY(-2px)}
@@ -111,7 +108,7 @@ body{
 
 /* Composer */
 .composer{display:flex;gap:10px;padding:12px;border-radius:var(--r-lg);margin-bottom:14px;
-  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.04));
   border:1px solid var(--line);box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.06);
   animation:rise .7s .34s cubic-bezier(.22,1,.36,1) both}
 .field{display:flex;align-items:center;gap:9px;background:rgba(0,0,0,.25);border:1px solid var(--line);
@@ -147,15 +144,15 @@ body{
 
 /* Board */
 .board{border-radius:var(--r-lg);overflow:hidden;
-  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.04));
   border:1px solid var(--line);box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.06);
   animation:rise .7s .46s cubic-bezier(.22,1,.36,1) both}
 .thead{display:grid;grid-template-columns:minmax(0,1fr) 292px 148px 128px;gap:14px;align-items:center;
   padding:13px 20px;font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-3);border-bottom:1px solid var(--line);background:rgba(255,255,255,.025)}
 .row{display:grid;grid-template-columns:minmax(0,1fr) 292px 148px 128px;gap:14px;align-items:center;
-  padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.055);transition:background .2s, opacity .3s;
-  animation:rowIn .5s cubic-bezier(.22,1,.36,1) both}
+  padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.055);transition:background .2s, opacity .3s}
+.row.anim{animation:rowIn .5s cubic-bezier(.22,1,.36,1) both}
 @keyframes rowIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .row:last-child{border-bottom:none}
 .row:hover{background:rgba(255,255,255,.032)}
@@ -181,7 +178,8 @@ body{
 /* Operators */
 .opscell{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .opchip{display:flex;align-items:center;gap:7px;padding:4px 10px 4px 4px;border-radius:999px;font-size:12px;font-weight:600;
-  background:rgba(255,255,255,.055);border:1px solid var(--line);animation:popIn .35s cubic-bezier(.34,1.56,.64,1) both}
+  background:rgba(255,255,255,.055);border:1px solid var(--line)}
+.opchip.anim{animation:popIn .35s cubic-bezier(.34,1.56,.64,1) both}
 @keyframes popIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
 .opchip.me{border-color:rgba(67,224,200,.55);background:rgba(67,224,200,.10);box-shadow:0 0 14px -4px rgba(67,224,200,.4)}
 .avatar{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;color:#fff;
@@ -210,7 +208,6 @@ body{
 .pill.dead{color:#ffa3b2;border-color:rgba(255,107,129,.35);background:rgba(255,107,129,.08)}
 .pill.dead i{background:var(--bad)}
 .pill.dead:hover{background:rgba(255,107,129,.16)}
-.pill.switch{animation:popIn .3s cubic-bezier(.34,1.56,.64,1)}
 
 /* Row actions */
 .actions{display:flex;gap:5px;justify-content:flex-end}
@@ -241,8 +238,8 @@ body{
 /* Modals */
 .veil{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;
   background:rgba(3,5,10,.55);backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);
-  opacity:0;pointer-events:none;transition:opacity .25s}
-.veil.open{opacity:1;pointer-events:auto}
+  opacity:0;visibility:hidden;pointer-events:none;transition:opacity .25s,visibility 0s .25s}
+.veil.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .25s}
 .sheet{width:100%;max-width:400px;padding:28px;border-radius:26px;
   background:linear-gradient(180deg,rgba(28,34,48,.85),rgba(16,20,30,.85));
   border:1px solid var(--line-2);box-shadow:0 40px 90px -20px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.1);
@@ -277,7 +274,7 @@ body{
 </style>
 </head>
 <body>
-<div class="sky"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div></div>
+<div class="sky"></div>
 <div class="grain"></div>
 
 <div class="wrap">
@@ -370,7 +367,7 @@ body{
 
 <div class="toasts" id="toasts"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js"></script>
 <script>
 "use strict";
 /* ═══════════ Config ═══════════ */
@@ -412,17 +409,24 @@ function toast(msg, type = "s"){
 }
 
 /* ═══════════ Dados ═══════════ */
-let refetchTimer = null;
+let refetchTimer = null, fetching = false, refetchQueued = false;
 function scheduleRefetch(){ clearTimeout(refetchTimer); refetchTimer = setTimeout(refetch, 130); }
 
 async function refetch(){
-  const [a, b] = await Promise.all([
-    sb.from("proxy_links").select("*").order("created_at", { ascending: false }),
-    sb.from("proxy_link_operators").select("*").order("joined_at", { ascending: true })
-  ]);
-  if (a.error || b.error) { console.error(a.error || b.error); return; }
-  links = a.data; ops = b.data;
-  render();
+  if (fetching) { refetchQueued = true; return; }
+  fetching = true;
+  try {
+    const [a, b] = await Promise.all([
+      sb.from("proxy_links").select("*").order("created_at", { ascending: false }),
+      sb.from("proxy_link_operators").select("*").order("joined_at", { ascending: true })
+    ]);
+    if (a.error || b.error) { console.error(a.error || b.error); return; }
+    links = a.data; ops = b.data;
+    render();
+  } finally {
+    fetching = false;
+    if (refetchQueued) { refetchQueued = false; scheduleRefetch(); }
+  }
 }
 
 function opsOf(id){ return ops.filter(o => o.link_id === id); }
@@ -441,7 +445,7 @@ async function addLink(){
   if (error) return toast("Erro ao adicionar: " + error.message, "e");
   $("#inUrl").value = ""; $("#inLabel").value = "";
   toast("Link adicionado ✨");
-  refetch();
+  scheduleRefetch();
 }
 
 async function join(id){
@@ -450,24 +454,29 @@ async function join(id){
   if (!l) return;
   if (l.status === "morreu") return toast("Esse link está morto 💀", "e");
   if (opsOf(id).length >= CAP) return toast("Link lotado — já tem 3 operadores", "e");
+  // otimista: chip aparece na hora; o servidor confirma (ou reverte) em seguida
+  ops.push({ id: "tmp-" + Math.random().toString(36).slice(2), link_id: id, operator_name: myName, joined_at: new Date().toISOString() });
+  render();
+  toast(`Você entrou no link`);
   const { error } = await sb.from("proxy_link_operators").insert({ link_id: id, operator_name: myName });
   if (error) {
     if ((error.message || "").includes("LINK_CHEIO")) toast("Alguém entrou antes — link lotado", "e");
     else if (error.code === "23505") toast("Você já está nesse link", "i");
     else toast("Erro: " + error.message, "e");
-    refetch(); return;
   }
-  toast(`Você entrou no link`);
-  refetch();
+  scheduleRefetch();
 }
 
 async function leave(id){
   const mine = opsOf(id).find(o => norm(o.operator_name) === norm(myName));
   if (!mine) return;
-  const { error } = await sb.from("proxy_link_operators").delete().eq("id", mine.id);
-  if (error) return toast("Erro: " + error.message, "e");
+  if (String(mine.id).startsWith("tmp-")) { scheduleRefetch(); return; }
+  ops = ops.filter(o => o.id !== mine.id);
+  render();
   toast("Você saiu do link", "i");
-  refetch();
+  const { error } = await sb.from("proxy_link_operators").delete().eq("id", mine.id);
+  if (error) toast("Erro: " + error.message, "e");
+  scheduleRefetch();
 }
 
 async function toggleStatus(id){
@@ -475,10 +484,10 @@ async function toggleStatus(id){
   if (!l) return;
   const next = l.status === "funcionando" ? "morreu" : "funcionando";
   l.status = next; render();
-  const { error } = await sb.from("proxy_links").update({ status: next }).eq("id", id);
-  if (error) { toast("Erro: " + error.message, "e"); refetch(); return; }
   toast(next === "morreu" ? "Marcado como morto 💀" : "Link revivido 🌱", next === "morreu" ? "i" : "s");
-  refetch();
+  const { error } = await sb.from("proxy_links").update({ status: next }).eq("id", id);
+  if (error) toast("Erro: " + error.message, "e");
+  scheduleRefetch();
 }
 
 async function saveEdit(){
@@ -489,16 +498,19 @@ async function saveEdit(){
   closeModals();
   if (error) return toast("Erro: " + error.message, "e");
   toast("Link atualizado");
-  refetch();
+  scheduleRefetch();
 }
 
 async function doDelete(){
   const id = deletingId;
   closeModals();
-  const { error } = await sb.from("proxy_links").delete().eq("id", id);
-  if (error) return toast("Erro: " + error.message, "e");
+  links = links.filter(x => x.id !== id);
+  ops = ops.filter(o => o.link_id !== id);
+  render();
   toast("Link excluído", "i");
-  refetch();
+  const { error } = await sb.from("proxy_links").delete().eq("id", id);
+  if (error) toast("Erro: " + error.message, "e");
+  scheduleRefetch();
 }
 
 function copyLink(url, btn){
@@ -587,13 +599,15 @@ function rowHtml(l, idx){
   const mine = iAmIn(l.id);
   const full = o.length >= CAP;
   const host = hostOf(l.url);
+  const newRow = !seenLinks.has(l.id);
   const fav = host
-    ? `<img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64" alt="" loading="lazy" onerror="this.parentElement.innerHTML='${GLOBE_SVG.replace(/'/g,"\\'").replace(/"/g,"&quot;")}'">`
+    ? `<img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64" alt="" width="20" height="20" loading="lazy" decoding="async" onerror="this.parentElement.innerHTML='${GLOBE_SVG.replace(/'/g,"\\'").replace(/"/g,"&quot;")}'">`
     : GLOBE_SVG;
 
   const chips = o.map(op => {
     const isMe = norm(op.operator_name) === norm(myName);
-    return `<span class="opchip ${isMe ? "me" : ""}" title="${esc(op.operator_name)}${isMe ? " (você)" : ""}">
+    const newOp = !seenOps.has(l.id + "|" + norm(op.operator_name));
+    return `<span class="opchip ${isMe ? "me" : ""} ${newOp ? "anim" : ""}" title="${esc(op.operator_name)}${isMe ? " (você)" : ""}">
       <span class="avatar" style="${avatarStyle(op.operator_name)}">${esc(initials(op.operator_name))}</span>
       <span class="nm">${esc(firstName(op.operator_name))}</span>
       ${isMe ? `<button class="out" data-leave="${l.id}" title="Sair deste link"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>` : ""}
@@ -609,7 +623,7 @@ function rowHtml(l, idx){
     ? `<span class="full-tag">Lotado</span>`
     : `<span class="capdots">${[0,1,2].map(i => `<i class="${i < o.length ? "f" : ""}"></i>`).join("")}</span>`;
 
-  return `<div class="row ${dead ? "dead" : ""}" style="animation-delay:${firstRender ? Math.min(idx, 10) * 45 + 500 : 0}ms">
+  return `<div class="row ${dead ? "dead" : ""} ${newRow ? "anim" : ""}" style="animation-delay:${firstRender ? Math.min(idx, 10) * 45 + 500 : 0}ms">
     <div class="linkcell">
       <div class="fav">${fav}</div>
       <div class="linkmeta">
@@ -629,7 +643,13 @@ function rowHtml(l, idx){
   </div>`;
 }
 
+const seenLinks = new Set(), seenOps = new Set();
+let lastRenderKey = "";
 function render(){
+  // pula o trabalho de DOM quando nada mudou (ex.: refetch periódico sem novidade)
+  const key = JSON.stringify([links, ops, filter, search, myName]);
+  if (key === lastRenderKey) return;
+  lastRenderKey = key;
   renderStats();
   renderChips();
   const list = visibleLinks();
@@ -641,6 +661,8 @@ function render(){
   } else {
     rows.innerHTML = list.map((l, i) => rowHtml(l, i)).join("");
   }
+  links.forEach(l => seenLinks.add(l.id));
+  ops.forEach(o => seenOps.add(o.link_id + "|" + norm(o.operator_name)));
   renderMe();
   firstRender = false;
 }
@@ -708,7 +730,11 @@ document.addEventListener("click", e => {
 $("#btnAdd").addEventListener("click", addLink);
 $("#inUrl").addEventListener("keydown", e => { if (e.key === "Enter") addLink(); });
 $("#inLabel").addEventListener("keydown", e => { if (e.key === "Enter") addLink(); });
-$("#inSearch").addEventListener("input", e => { search = e.target.value; render(); });
+let searchTimer = null;
+$("#inSearch").addEventListener("input", e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { search = e.target.value; render(); }, 120);
+});
 
 /* ═══════════ Realtime ═══════════ */
 function setLive(on, txt){
