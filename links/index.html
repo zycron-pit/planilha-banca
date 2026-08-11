@@ -255,6 +255,19 @@ body{
 .foot{margin-top:26px;text-align:center;font-size:11.5px;color:var(--ink-3)}
 .foot b{color:var(--ink-2);font-weight:600}
 
+/* ── Papéis: elementos exclusivos do dono ─────────────── */
+body:not(.owner) .owner-only{display:none !important}
+.ownertag{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.08em;
+  color:#ffd79a;background:rgba(255,196,107,.10);border:1px solid rgba(255,196,107,.35);box-shadow:0 0 16px -4px rgba(255,196,107,.35)}
+.divider{height:1px;background:var(--line);margin:18px 0 14px}
+.sheet.wide{max-width:560px}
+textarea.bulk{width:100%;min-height:210px;resize:vertical;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:12px 14px;color:var(--ink);font-family:var(--mono);font-size:12px;line-height:1.7;outline:none;transition:border-color .2s, box-shadow .2s}
+textarea.bulk:focus{border-color:rgba(67,224,200,.5);box-shadow:0 0 0 3px rgba(67,224,200,.12)}
+.bulkinfo{margin-top:8px;font-size:12px;color:var(--ink-3);font-family:var(--mono)}
+.ownerActive{display:flex;align-items:center;gap:8px;padding:11px 14px;margin-bottom:10px;border-radius:var(--r-md);font-size:13px;font-weight:600;
+  color:#ffd79a;background:rgba(255,196,107,.08);border:1px solid rgba(255,196,107,.3)}
+
 /* Responsive */
 @media (max-width:940px){
   .wrap{padding:14px 14px 70px}
@@ -282,20 +295,21 @@ body{
     <div class="logo"><div class="gem">💠</div><div><b>Zycron</b> <span>Links</span></div></div>
     <div class="spacer"></div>
     <div class="live" id="live"><span class="dot"></span><span id="liveTxt">Conectando…</span></div>
+    <span class="ownertag owner-only">👑 DONO</span>
     <div class="userchip" id="userchip" title="Trocar operador">
       <span class="avatar" id="myAvatar" style="width:28px;height:28px;font-size:11px">?</span>
-      <div><small>Operador</small><span id="myName">—</span></div>
+      <div><small id="roleLbl">Operador</small><span id="myName">—</span></div>
     </div>
   </nav>
 
   <header class="hero">
     <h1>Central de <em>Links</em></h1>
-    <p>Cole os links da operação e marque qual você está usando. Cada link aceita até <b style="color:var(--ink)">3 operadores</b> — todo mundo vê em tempo real.</p>
+    <p>Marque qual link você está usando. Cada link aceita até <b style="color:var(--ink)">3 operadores</b> — todo mundo vê em tempo real.</p>
   </header>
 
   <section class="stats" id="stats"></section>
 
-  <section class="composer">
+  <section class="composer owner-only">
     <label class="field f-url">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       <input id="inUrl" type="text" placeholder="https://cole-o-link-aqui.com/?id=..." autocomplete="off" spellcheck="false">
@@ -307,6 +321,10 @@ body{
     <button class="btn btn-primary" id="btnAdd">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       Adicionar link
+    </button>
+    <button class="btn btn-ghost" id="btnImportOpen" title="Colar vários links de uma vez (um por linha)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+      Importar lista
     </button>
   </section>
 
@@ -334,6 +352,25 @@ body{
     <p class="flabel">Seu nome</p>
     <label class="field"><input id="inIdent" type="text" placeholder="ex.: Ryan" maxlength="24" autocomplete="off"></label>
     <div class="btnrow"><button class="btn btn-primary" id="btnIdent" style="width:100%">Entrar na central</button></div>
+    <div class="divider"></div>
+    <p class="flabel">Modo dono</p>
+    <div id="ownerArea"></div>
+  </div>
+</div>
+
+<!-- Modal: importar em massa -->
+<div class="veil" id="mImport">
+  <div class="sheet wide">
+    <h2>Importar links em massa 📥</h2>
+    <p class="sub">Cole um link por linha. O que vier depois do link na mesma linha vira o apelido. Repetidos e inválidos são ignorados.</p>
+    <textarea id="bulkTxt" class="bulk" spellcheck="false" placeholder="https://we-vibrantpg.com/?id=111111111
+https://we-vibrantpg.com/?id=222222222
+https://vibrantpg.com/?id=333333333 link do turno da noite"></textarea>
+    <p class="bulkinfo" id="bulkInfo">0 novos</p>
+    <div class="btnrow">
+      <button class="btn btn-ghost" data-close>Cancelar</button>
+      <button class="btn btn-primary" id="btnImportYes">Importar</button>
+    </div>
   </div>
 </div>
 
@@ -374,7 +411,11 @@ body{
 const SB_URL  = "https://tyexlrlndrgezalqdwmu.supabase.co";
 const SB_KEY  = "sb_publishable_fQRFOUWvdJDQAe4m2mmsrQ_0TwN0LsC";
 const CAP     = 3;
-const sb = window.supabase.createClient(SB_URL, SB_KEY);
+const OWNER_KEY = (localStorage.getItem("zl_owner_key") || "").trim();
+const sbOpts = { auth: { persistSession: false } };
+if (OWNER_KEY) sbOpts.global = { headers: { "x-zycron-owner": OWNER_KEY } };
+const sb = window.supabase.createClient(SB_URL, SB_KEY, sbOpts);
+let isOwner = false;
 
 /* ═══════════ Estado ═══════════ */
 let links = [], ops = [];
@@ -387,11 +428,13 @@ let editingId = null, deletingId = null;
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const norm = s => String(s || "").trim().toLowerCase();
+const permErr = e => !!e && (e.code === "42501" || String(e.message || "").includes("SOMENTE_DONO") || String(e.message || "").includes("row-level security"));
 function hue(name){ let h = 0; const s = norm(name); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h % 360; }
 function avatarStyle(name){ const h = hue(name); return `background:linear-gradient(135deg,hsl(${h},72%,52%),hsl(${(h+45)%360},80%,42%))`; }
 function initials(name){ const p = String(name).trim().split(/\s+/); return ((p[0]?.[0]||"") + (p[1]?.[0]||"")).toUpperCase() || "?"; }
 function firstName(name){ return String(name).trim().split(/\s+/)[0]; }
 function withProto(u){ u = u.trim(); return /^https?:\/\//i.test(u) ? u : "https://" + u; }
+function validUrl(u){ try { return new URL(u).hostname.includes("."); } catch { return false; } }
 function hostOf(u){ try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } }
 function shortUrl(u){ try { const x = new URL(u); return x.hostname.replace(/^www\./,"") + (x.pathname !== "/" ? x.pathname : (x.search ? "/" : "")) + x.search; } catch { return u; } }
 
@@ -434,15 +477,16 @@ function iAmIn(id){ return opsOf(id).some(o => norm(o.operator_name) === norm(my
 
 /* ═══════════ Ações ═══════════ */
 async function addLink(){
+  if (!isOwner) return toast("🔒 Só o dono adiciona links", "e");
   const raw = $("#inUrl").value.trim();
   const label = $("#inLabel").value.trim();
   if (!raw) return toast("Cole um link primeiro", "e");
   const url = withProto(raw);
-  try { new URL(url); } catch { return toast("Esse link não parece válido", "e"); }
+  if (!validUrl(url)) return toast("Esse link não parece válido", "e");
   $("#btnAdd").disabled = true;
   const { error } = await sb.from("proxy_links").insert({ url, label });
   $("#btnAdd").disabled = false;
-  if (error) return toast("Erro ao adicionar: " + error.message, "e");
+  if (error) return toast(permErr(error) ? "🔒 Só o dono adiciona links" : "Erro ao adicionar: " + error.message, "e");
   $("#inUrl").value = ""; $("#inLabel").value = "";
   toast("Link adicionado ✨");
   scheduleRefetch();
@@ -486,22 +530,24 @@ async function toggleStatus(id){
   l.status = next; render();
   toast(next === "morreu" ? "Marcado como morto 💀" : "Link revivido 🌱", next === "morreu" ? "i" : "s");
   const { error } = await sb.from("proxy_links").update({ status: next }).eq("id", id);
-  if (error) toast("Erro: " + error.message, "e");
+  if (error) toast(permErr(error) ? "🔒 Ação exclusiva do dono" : "Erro: " + error.message, "e");
   scheduleRefetch();
 }
 
 async function saveEdit(){
+  if (!isOwner) return toast("🔒 Só o dono edita links", "e");
   const url = withProto($("#edUrl").value.trim());
   const label = $("#edLabel").value.trim();
-  try { new URL(url); } catch { return toast("URL inválida", "e"); }
+  if (!validUrl(url)) return toast("URL inválida", "e");
   const { error } = await sb.from("proxy_links").update({ url, label }).eq("id", editingId);
   closeModals();
-  if (error) return toast("Erro: " + error.message, "e");
+  if (error) return toast(permErr(error) ? "🔒 Só o dono edita links" : "Erro: " + error.message, "e");
   toast("Link atualizado");
   scheduleRefetch();
 }
 
 async function doDelete(){
+  if (!isOwner) return toast("🔒 Só o dono exclui links", "e");
   const id = deletingId;
   closeModals();
   links = links.filter(x => x.id !== id);
@@ -509,7 +555,80 @@ async function doDelete(){
   render();
   toast("Link excluído", "i");
   const { error } = await sb.from("proxy_links").delete().eq("id", id);
-  if (error) toast("Erro: " + error.message, "e");
+  if (error) toast(permErr(error) ? "🔒 Só o dono exclui links" : "Erro: " + error.message, "e");
+  scheduleRefetch();
+}
+
+/* ── Modo dono ── */
+function renderOwnerArea(){
+  const box = $("#ownerArea");
+  if (!box) return;
+  if (isOwner) {
+    box.innerHTML = `<div class="ownerActive">👑 Modo dono ativo</div>
+      <button class="btn btn-ghost" id="btnOwnerOff" style="width:100%;height:40px;font-size:13px">Desativar modo dono</button>`;
+    $("#btnOwnerOff").addEventListener("click", () => { localStorage.removeItem("zl_owner_key"); location.reload(); });
+  } else {
+    box.innerHTML = `<label class="field"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg><input id="inOwnerKey" type="password" placeholder="Chave do dono (opcional)" autocomplete="off"></label>
+      <button class="btn btn-ghost" id="btnOwnerOn" style="width:100%;height:40px;font-size:13px;margin-top:10px">👑 Ativar modo dono</button>`;
+    $("#btnOwnerOn").addEventListener("click", activateOwner);
+    $("#inOwnerKey").addEventListener("keydown", e => { if (e.key === "Enter") activateOwner(); });
+  }
+}
+async function activateOwner(){
+  const k = $("#inOwnerKey").value.trim();
+  if (!k) return toast("Cole a chave de dono", "e");
+  const tmp = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false }, global: { headers: { "x-zycron-owner": k } } });
+  const { data, error } = await tmp.rpc("check_owner");
+  if (error || data !== true) return toast("Chave de dono inválida", "e");
+  localStorage.setItem("zl_owner_key", k);
+  location.reload();
+}
+
+/* ── Importação em massa ── */
+function parseBulk(text){
+  const seen = new Set(links.map(l => l.url));
+  const out = []; let invalid = 0, dup = 0;
+  for (const lineRaw of String(text || "").split(/\r?\n/)){
+    const line = lineRaw.trim();
+    if (!line) continue;
+    const [first, ...rest] = line.split(/\s+/);
+    const url = withProto(first);
+    if (!validUrl(url)) { invalid++; continue; }
+    if (seen.has(url)) { dup++; continue; }
+    seen.add(url);
+    out.push({ url, label: rest.join(" ").slice(0, 40) });
+  }
+  return { out, invalid, dup };
+}
+function bulkPreview(){
+  const { out, invalid, dup } = parseBulk($("#bulkTxt").value);
+  const parts = [`${out.length} novo${out.length === 1 ? "" : "s"}`];
+  if (dup) parts.push(`${dup} já existe${dup === 1 ? "" : "m"}`);
+  if (invalid) parts.push(`${invalid} inválido${invalid === 1 ? "" : "s"}`);
+  $("#bulkInfo").textContent = parts.join(" · ");
+  $("#btnImportYes").textContent = out.length ? `Importar ${out.length}` : "Importar";
+}
+async function doImport(){
+  if (!isOwner) return toast("🔒 Só o dono importa links", "e");
+  const { out } = parseBulk($("#bulkTxt").value);
+  if (!out.length) return toast("Nenhum link novo para importar", "e");
+  $("#btnImportYes").disabled = true;
+  // created_at decrescente por linha → a primeira linha do txt fica no topo da lista
+  const base = Date.now();
+  const rows = out.map((r, i) => ({ ...r, created_at: new Date(base - i).toISOString() }));
+  let okCount = 0, err = null;
+  for (let i = 0; i < rows.length; i += 200){
+    const chunk = rows.slice(i, i + 200);
+    const { error } = await sb.from("proxy_links").insert(chunk);
+    if (error) { err = error; break; }
+    okCount += chunk.length;
+  }
+  $("#btnImportYes").disabled = false;
+  if (err) toast(permErr(err) ? "🔒 Só o dono importa links" : "Erro: " + err.message, "e");
+  if (okCount){
+    $("#bulkTxt").value = ""; bulkPreview(); closeModals();
+    toast(`${okCount} link${okCount > 1 ? "s" : ""} importado${okCount > 1 ? "s" : ""} ✨`);
+  }
   scheduleRefetch();
 }
 
@@ -637,8 +756,8 @@ function rowHtml(l, idx){
     <div><button class="pill ${dead ? "dead" : "ok"}" data-status="${l.id}" title="Clique para alternar o estado"><i></i>${dead ? "Morreu" : "Funcionando"}</button></div>
     <div class="actions">
       <button class="iconbtn" data-open="${esc(l.url)}" title="Abrir link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></button>
-      <button class="iconbtn" data-edit="${l.id}" title="Editar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
-      <button class="iconbtn del" data-del="${l.id}" title="Excluir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+      <button class="iconbtn owner-only" data-edit="${l.id}" title="Editar (dono)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+      <button class="iconbtn del owner-only" data-del="${l.id}" title="Excluir (dono)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
     </div>
   </div>`;
 }
@@ -647,7 +766,7 @@ const seenLinks = new Set(), seenOps = new Set();
 let lastRenderKey = "";
 function render(){
   // pula o trabalho de DOM quando nada mudou (ex.: refetch periódico sem novidade)
-  const key = JSON.stringify([links, ops, filter, search, myName]);
+  const key = JSON.stringify([links, ops, filter, search, myName, isOwner]);
   if (key === lastRenderKey) return;
   lastRenderKey = key;
   renderStats();
@@ -657,7 +776,7 @@ function render(){
   if (!list.length){
     rows.innerHTML = links.length
       ? `<div class="empty"><div class="big">🔍</div><h3>Nada por aqui</h3><p>Nenhum link bate com esse filtro ou busca.</p></div>`
-      : `<div class="empty"><div class="big">💠</div><h3>Nenhum link ainda</h3><p>Cole o primeiro link da operação lá em cima para começar.</p></div>`;
+      : `<div class="empty"><div class="big">💠</div><h3>Nenhum link ainda</h3><p>${isOwner ? "Cole o primeiro link lá em cima, ou use “Importar lista” para colar vários de uma vez." : "O dono ainda não adicionou links por aqui."}</p></div>`;
   } else {
     rows.innerHTML = list.map((l, i) => rowHtml(l, i)).join("");
   }
@@ -668,6 +787,7 @@ function render(){
 }
 
 function renderMe(){
+  $("#roleLbl").textContent = isOwner ? "Dono" : "Operador";
   $("#myName").textContent = myName || "Definir nome";
   const av = $("#myAvatar");
   av.textContent = myName ? initials(myName) : "?";
@@ -675,7 +795,7 @@ function renderMe(){
 }
 
 /* ═══════════ Modais ═══════════ */
-function openIdent(){ $("#inIdent").value = myName; $("#mIdent").classList.add("open"); setTimeout(() => $("#inIdent").focus(), 150); }
+function openIdent(){ $("#inIdent").value = myName; renderOwnerArea(); $("#mIdent").classList.add("open"); setTimeout(() => $("#inIdent").focus(), 150); }
 function closeModals(){ document.querySelectorAll(".veil").forEach(v => v.classList.remove("open")); editingId = deletingId = null; }
 
 $("#btnIdent").addEventListener("click", () => {
@@ -730,6 +850,15 @@ document.addEventListener("click", e => {
 $("#btnAdd").addEventListener("click", addLink);
 $("#inUrl").addEventListener("keydown", e => { if (e.key === "Enter") addLink(); });
 $("#inLabel").addEventListener("keydown", e => { if (e.key === "Enter") addLink(); });
+$("#btnImportOpen").addEventListener("click", () => {
+  if (!isOwner) return toast("🔒 Só o dono importa links", "e");
+  bulkPreview();
+  $("#mImport").classList.add("open");
+  setTimeout(() => $("#bulkTxt").focus(), 150);
+});
+$("#btnImportYes").addEventListener("click", doImport);
+let bulkTimer = null;
+$("#bulkTxt").addEventListener("input", () => { clearTimeout(bulkTimer); bulkTimer = setTimeout(bulkPreview, 150); });
 let searchTimer = null;
 $("#inSearch").addEventListener("input", e => {
   clearTimeout(searchTimer);
@@ -751,7 +880,21 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) refe
 
 /* ═══════════ Boot ═══════════ */
 renderMe();
-refetch().then(() => { if (!myName) openIdent(); });
+(async () => {
+  if (OWNER_KEY) {
+    const { data, error } = await sb.rpc("check_owner");
+    if (!error && data === true) {
+      isOwner = true;
+      document.body.classList.add("owner");
+    } else if (!error) {
+      localStorage.removeItem("zl_owner_key");
+      toast("Chave de dono inválida — entrando como operador", "e");
+    }
+    renderMe();
+  }
+  await refetch();
+  if (!myName) openIdent();
+})();
 </script>
 </body>
 </html>
