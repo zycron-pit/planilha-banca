@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
+<!-- sync-v2: fetch-first, resync on wake, server backups -->
 <meta charset="utf-8">
 <title>Gestão de Banca · Ao Vivo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -249,7 +250,7 @@ button.danger:hover{background:rgba(255,107,126,.18);box-shadow:0 0 18px rgba(25
     </div>
   </div>
 
-  <div class="footer-note">🟢 Edição compartilhada em tempo real — quem tiver o link vê e edita junto · Navegue com ↑ ↓ ← → e Enter · Lucro = Saque + Baú − Depósito · Aporte soma · SMS e Pagamento deduzem</div>
+  <div class="footer-note">🟢 Edição compartilhada em tempo real, com backup automático das últimas 300 alterações · Navegue com ↑ ↓ ← → e Enter · Lucro = Saque + Baú − Depósito · Aporte soma · SMS e Pagamento deduzem</div>
 </div>
 
 <script>
@@ -261,8 +262,10 @@ var SHEET_ID="principal";
 var sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 var myId="u"+Math.random().toString(36).slice(2,10);
 var applying=false;
+var synced=false;      // NUNCA grava no servidor antes da 1ª leitura bem-sucedida
+var lastTs="";         // updated_at (do servidor) da última versão aplicada/gravada
 
-const KEY="banca-verde-agua-live-v1";
+const KEY="banca-verde-agua-live-v2";
 const N=20, ND=10;
 const fmt=v=>(v<0?"-R$ ":"R$ ")+Math.abs(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 const parseBR=s=>{
@@ -280,11 +283,16 @@ function blank(){
     c1:Array.from({length:N},()=>({telas:0,dep:0,saq:0,bau:0})),
     c2:Array.from({length:N},()=>({data:"",dep:0,saq:0,bau:0})),
     desp:Array.from({length:ND},()=>({data:"",tipo:"",desc:"",valor:0})),
-    dias:[]
+    dias:[],
+    _cleared:false
   };
 }
 function load(){
-  try{const d=JSON.parse(localStorage.getItem(KEY)); if(d&&d.c1)return d;}catch(e){}
+  try{
+    const old=localStorage.getItem("banca-verde-agua-live-v1");
+    const d=JSON.parse(localStorage.getItem(KEY)||old);
+    if(d&&d.c1)return d;
+  }catch(e){}
   return blank();
 }
 function serialize(){
@@ -294,12 +302,20 @@ function serialize(){
     c2:S.c2.map(r=>({data:r.data||"",dep:r.dep||0,saq:r.saq||0,bau:r.bau||0})),
     desp:S.desp.map(r=>({data:r.data||"",tipo:r.tipo||"",desc:r.desc||"",valor:r.valor||0})),
     dias:(S.dias||[]).slice(),
+    _cleared:!!S._cleared,
     _client:myId
   };
 }
+// tem algum dado de verdade? (valores, despesas ou dias — ignora banco inicial)
+function hasContent(d){
+  if(!d||!d.c1)return false;
+  const anyMoney=arr=>(arr||[]).some(r=>(r.telas||0)||(r.dep||0)||(r.saq||0)||(r.bau||0));
+  const anyDesp=(d.desp||[]).some(r=>(r.valor||0)||(r.tipo||""));
+  return anyMoney(d.c1)||anyMoney(d.c2)||anyDesp||((d.dias||[]).length>0);
+}
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(serialize()));}catch(e){}
-  if(!applying)queuePush();
+  if(synced&&!applying)queuePush();
 }
 
 /* ---------- sync status UI ---------- */
@@ -310,22 +326,47 @@ function setPill(id,cls,txt){
 }
 let pushTimer=null, pushing=false, dirty=false;
 function queuePush(){
+  if(!synced)return;
   clearTimeout(pushTimer);
   setPill("syncPill","warn","Salvando…");
-  pushTimer=setTimeout(push,450);
+  pushTimer=setTimeout(push,400);
 }
 async function push(){
+  if(!synced)return;
+  clearTimeout(pushTimer); pushTimer=null;
   if(pushing){dirty=true;return;}
   pushing=true;
+  let ok=false;
   try{
-    const {error}=await sb.from("banca_sheets").upsert({id:SHEET_ID,data:serialize(),updated_at:new Date().toISOString()});
-    if(error)throw error;
+    const res=await sb.from("banca_sheets").upsert({id:SHEET_ID,data:serialize()}).select("updated_at").maybeSingle();
+    if(res.error)throw res.error;
+    if(res.data&&res.data.updated_at)lastTs=res.data.updated_at;
+    ok=true;
     setPill("syncPill","ok","Sincronizado");
   }catch(e){
-    setPill("syncPill","err","Offline — tente de novo");
+    setPill("syncPill","err","Sem conexão — salvo neste aparelho");
   }
   pushing=false;
   if(dirty){dirty=false;push();}
+  else if(!ok&&synced){pushTimer=setTimeout(push,4000);}
+}
+// ao fechar/minimizar com alteração pendente, envia na hora (keepalive sobrevive à página)
+function flushPending(){
+  if(!synced||!pushTimer)return;
+  clearTimeout(pushTimer); pushTimer=null;
+  try{
+    fetch(SUPA_URL+"/rest/v1/banca_sheets?on_conflict=id",{
+      method:"POST",
+      keepalive:true,
+      headers:{
+        "apikey":SUPA_KEY,
+        "Authorization":"Bearer "+SUPA_KEY,
+        "Content-Type":"application/json",
+        "Prefer":"resolution=merge-duplicates"
+      },
+      body:JSON.stringify([{id:SHEET_ID,data:serialize()}])
+    });
+  }catch(e){}
 }
 
 /* ---------- build rows ---------- */
@@ -564,6 +605,7 @@ function applyRemote(d){
   try{
     S.inicial=d.inicial||0;
     S.dataFiltro=d.dataFiltro||"";
+    S._cleared=!!d._cleared;
     const bi=document.getElementById("bancoInicial"), df=document.getElementById("dataFiltro");
     setVal(bi,S.inicial,true);
     setVal(df,S.dataFiltro,false);
@@ -629,50 +671,95 @@ document.getElementById("snapDia").addEventListener("click",()=>{
   buildDias(); recalc();
 });
 document.getElementById("resetAll").addEventListener("click",()=>{
-  if(!confirm("Apagar TODOS os dados da planilha? Isso apaga para todo mundo que usa o link e não pode ser desfeito."))return;
+  if(!confirm("Apagar TODOS os dados da planilha? Isso apaga para todo mundo que usa o link. (As últimas 300 versões ficam no backup do servidor.)"))return;
   S=blank();
+  S._cleared=true;
   buildCiclos(document.getElementById("tblC1"),S.c1,1,false);
   buildCiclos(document.getElementById("tblC2"),S.c2,21,true);
   buildDespesas(); buildDias();
   bi.value=fmt(S.inicial); df.value="";
   recalc();
 });
-recalc();
+recalc(); // com synced=false ainda: pinta a tela, mas NÃO grava no servidor
 
-/* ---------- conexão realtime ---------- */
-(async function(){
+/* ---------- sincronização (servidor manda) ---------- */
+// Regra de ouro: este cliente só passa a GRAVAR depois de LER o servidor com sucesso.
+// Isso elimina o bug que apagava os dados: um aparelho com cache vazio/antigo
+// não consegue mais atropelar os dados de todo mundo ao abrir a página.
+let resyncing=false, resyncTimer=null;
+async function resync(){
+  if(resyncing)return;
+  resyncing=true;
+  synced=false;
+  clearTimeout(resyncTimer);
+  setPill("syncPill","warn","Atualizando…");
   try{
-    const res=await sb.from("banca_sheets").select("data").eq("id",SHEET_ID).maybeSingle();
+    const res=await sb.from("banca_sheets").select("data,updated_at").eq("id",SHEET_ID).maybeSingle();
     if(res.error)throw res.error;
-    if(res.data&&res.data.data&&res.data.data.c1){
-      applyRemote(res.data.data);
-      setPill("syncPill","ok","Sincronizado");
+    const remote=res.data&&res.data.data;
+    if(remote&&remote.c1){
+      // resgate: servidor vazio (sem ter sido "Limpar tudo") + este aparelho tem dados => restaura daqui
+      if(!hasContent(remote)&&!remote._cleared&&hasContent(S)){
+        synced=true;
+        queuePush();
+        setPill("syncPill","warn","Restaurando dados deste aparelho…");
+      }else{
+        lastTs=res.data.updated_at||"";
+        applyRemote(remote);
+        synced=true;
+        setPill("syncPill","ok","Sincronizado");
+      }
     }else{
+      // primeira vez: ainda não existe planilha no servidor — semeia com o estado local
+      synced=true;
       queuePush();
     }
   }catch(e){
-    setPill("syncPill","err","Sem conexão");
+    setPill("syncPill","err","Sem conexão — tentando de novo");
+    resyncTimer=setTimeout(resync,4000);
+  }finally{
+    resyncing=false;
   }
+}
+resync();
 
-  sb.channel("banca-sync")
-    .on("postgres_changes",{event:"*",schema:"public",table:"banca_sheets",filter:"id=eq."+SHEET_ID},payload=>{
-      const d=payload.new&&payload.new.data;
-      if(d&&d._client!==myId)applyRemote(d);
-    })
-    .subscribe(status=>{
-      if(status==="SUBSCRIBED")setPill("syncPill","ok","Sincronizado");
-      else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")setPill("syncPill","err","Reconectando…");
-    });
+sb.channel("banca-sync")
+  .on("postgres_changes",{event:"*",schema:"public",table:"banca_sheets",filter:"id=eq."+SHEET_ID},payload=>{
+    const row=payload.new||{};
+    const d=row.data;
+    if(!d||d._client===myId)return;
+    const ts=row.updated_at||"";
+    if(ts&&lastTs&&new Date(ts).getTime()<=new Date(lastTs).getTime())return; // ignora evento atrasado/fora de ordem
+    lastTs=ts||lastTs;
+    applyRemote(d);
+    if(synced)setPill("syncPill","ok","Sincronizado");
+  })
+  .subscribe(status=>{
+    if(status==="SUBSCRIBED"){
+      // reconectou (ou conectou): busca o que perdeu enquanto esteve fora
+      resync();
+    }else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){
+      synced=false; // sem canal ao vivo, não confia no estado local para gravar
+      setPill("syncPill","err","Reconectando…");
+    }
+  });
 
-  const pres=sb.channel("banca-presence",{config:{presence:{key:myId}}});
-  pres.on("presence",{event:"sync"},()=>{
-    const n=Object.keys(pres.presenceState()).length;
-    setPill("onlinePill",n>1?"ok":"","👤 "+n+" online");
-  });
-  pres.subscribe(async status=>{
-    if(status==="SUBSCRIBED")await pres.track({at:Date.now()});
-  });
-})();
+// celular travou / trocou de aba / voltou a internet: envia pendências ao sair, relê ao voltar
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="hidden")flushPending();
+  else resync();
+});
+window.addEventListener("pagehide",flushPending);
+window.addEventListener("online",()=>resync());
+
+const pres=sb.channel("banca-presence",{config:{presence:{key:myId}}});
+pres.on("presence",{event:"sync"},()=>{
+  const n=Object.keys(pres.presenceState()).length;
+  setPill("onlinePill",n>1?"ok":"","👤 "+n+" online");
+});
+pres.subscribe(async status=>{
+  if(status==="SUBSCRIBED")await pres.track({at:Date.now()});
+});
 </script>
 </body>
 </html>
